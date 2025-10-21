@@ -1,28 +1,40 @@
-from flask import Flask, render_template, redirect
-import subprocess
+from flask import Flask, send_from_directory, jsonify
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-NGINX_TEMPLATE = os.path.join(BASE_DIR, "nginx_template.conf")
-NGINX_CONFIG = os.path.join(BASE_DIR, "../nginx/nginx.conf")
+# Load environment variables
+BLUE_PORT = int(os.getenv('BLUE_PORT', 5051))
+GREEN_PORT = int(os.getenv('GREEN_PORT', 5052))
+NGINX_CONFIG_PATH = os.getenv('NGINX_CONFIG_PATH', '/etc/nginx/templates/default.conf.template')
+NGINX_RELOAD_CMD = os.getenv('NGINX_RELOAD_CMD', 'nginx -s reload')
 
-def update_nginx(target_port):
-    with open(NGINX_TEMPLATE, "r") as template:
-        config = template.read().replace("{{TARGET_PORT}}", str(target_port))
-    with open(NGINX_CONFIG, "w") as f:
-        f.write(config)
-    subprocess.run(["nginx", "-s", "reload"])
-
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return send_from_directory('static', 'index.html')
 
-@app.route("/switch/<int:port>")
+
+@app.route('/switch/<int:port>', methods=['GET'])
 def switch(port):
-    update_nginx(port)
-    return redirect("/")
+    if port not in [BLUE_PORT, GREEN_PORT]:
+        return jsonify({'error': 'Invalid port'}), 400
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    config = f"""
+    server {{
+        listen 5000;
+        location / {{
+            proxy_pass http://localhost:{port};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }}
+    }}
+    """
+
+    with open(NGINX_CONFIG_PATH, 'w') as f:
+        f.write(config)
+
+    os.system(NGINX_RELOAD_CMD)
+    return jsonify({'message': f'Switched to port {port}'}), 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.getenv('FLASK_PORT', 8000)))
