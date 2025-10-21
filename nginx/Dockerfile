@@ -1,2 +1,3 @@
 FROM nginx:alpine
-COPY default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+
