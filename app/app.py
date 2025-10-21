@@ -1,10 +1,12 @@
 from flask import Flask, render_template, redirect
 import subprocess
+import os
 
 app = Flask(__name__)
 
-NGINX_TEMPLATE = "nginx_template.conf"
-NGINX_CONFIG = "/etc/nginx/conf.d/default.conf"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+NGINX_TEMPLATE = os.path.join(BASE_DIR, "nginx_template.conf")
+NGINX_CONFIG = os.path.join(BASE_DIR, "../nginx/nginx.conf")
 
 def update_nginx(target_port):
     with open(NGINX_TEMPLATE, "r") as template:
