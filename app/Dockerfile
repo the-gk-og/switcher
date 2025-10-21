@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 WORKDIR /app
-COPY app/ .  # ✅ copies contents of app/ into /app
-RUN pip install -r requirements.txt
-ENV FLASK_PORT=8000
+COPY . .
+RUN pip install --no-cache-dir -r requirements.txt
+EXPOSE 5050
 CMD ["python", "app.py"]
